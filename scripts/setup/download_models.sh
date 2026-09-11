@@ -18,8 +18,11 @@ declare -A MODELS=(
     ["gemma-3-4b-it"]="google/gemma-3-4b-it"
     ["gemma-3-12b-it"]="google/gemma-3-12b-it"
     ["Qwen3-8B"]="Qwen/Qwen3-8B"
-    # Attacker model used for the multi-turn red-teaming runs:
-    ["gemma-4-31B-it-abliterated"]="huihui-ai/Huihui-gemma-4-31B-it-abliterated-v2"
+    # Base for the multi-turn child actor. The actor itself (this model with its
+    # refusal direction ablated) is not downloaded here — build it locally and
+    # save it to ${MODELS_DIR}/gemma-4-31B-it-abliterated; see "The child actor"
+    # in README.md.
+    ["gemma-4-31B-it"]="google/gemma-4-31B-it"
 )
 
 mkdir -p "${MODELS_DIR}"

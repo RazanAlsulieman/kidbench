@@ -219,6 +219,10 @@ bash scripts/generation/multi_turn/vllm.sh         # open-weight responder
 
 The actor always runs locally under vLLM and needs one GPU, even when the responder is a hosted API model. When the responder is also local, the two models are loaded in separate subprocesses so they can be pinned to different GPUs (`ATTACKER_CUDA_DEVICE`, `GENERATOR_CUDA_DEVICE`).
 
+**The child actor.** The actor is Gemma-4-31B-it with its refusal direction ablated ([Arditi et al., 2024](https://arxiv.org/abs/2406.11717)), so it does not refuse to play a child probing sensitive topics. A refusal-ablated model is itself a safety-sensitive artifact, so we do not release that checkpoint. Everything else about the actor is in this repository: the system prompt (`system_prompts/generation/attacker.jinja`), the scenario and child-goal conditioning, and the turn loop (`src/child_safety/generation/multi_turn.py`).
+
+To rebuild it, apply refusal-direction ablation to [`google/gemma-4-31B-it`](https://huggingface.co/google/gemma-4-31B-it) — for example with [remove-refusals-with-transformers](https://github.com/Sumandora/remove-refusals-with-transformers) — and save the result to `${MODELS_DIR}/gemma-4-31B-it-abliterated`, where the multi-turn scripts look for it (override with `ATTACKER_MODEL_PATH`). Validate the actor before trusting multi-turn results, as the paper does: check a sample of actor messages for refusals (0% across 500 messages in the paper) and for child-likeness (70% clearly child-like across 100). An actor that refuses, or drops its child goal when the responder deflects, makes a responder look safer than it is.
+
 Output: `responses/multi_turn/{model}/{with_age,without_age}.json`
 
 ### Stage 2 — Judge evaluation
@@ -228,7 +232,7 @@ bash scripts/evaluation/single_turn/deepseek.sh
 bash scripts/evaluation/multi_turn/deepseek.sh
 ```
 
-For single-turn files the judge receives the prompt, the response, the scoring rubric, and the category rules; for country files it also receives that country's cultural rules. The country and language are inferred from the file name.
+For single-turn files the judge receives the prompt, the response, the scoring rubric, and the category rules (`system_prompts/rules/categories/`); for country files it also receives that country's cultural rules (`system_prompts/rules/countries/`). These are the exact rule blocks used in the paper. The country and language are inferred from the file name.
 
 For multi-turn files each conversation is judged as one chat session — the judge sees turn *t* alongside its own scores for turns 1…*t−1*, which is what makes the degradation measurements meaningful.
 
@@ -277,6 +281,8 @@ bash scripts/finetune/judge_eval.sh    # agreement with DeepSeek on the held-out
 ```
 
 The paper selects epoch 2: Spearman ρ = 0.8514, QWK = 0.8722, exact accuracy = 0.7971, within-1 accuracy = 0.9607. All three epoch checkpoints are on the Hub as [`KIDGuardLlama-SFT-Epoch-{1,2,3}`](https://huggingface.co/sameearif/KIDGuardLlama-SFT-Epoch-2), so you can skip this stage and pull the trained guard directly.
+
+KIDGuardLlama expects its **training format**, which differs from the DeepSeek judge prompt. The system prompt is the compact rubric in `system_prompts/finetune/` (`judge_single.jinja`, or `judge_cultural_single.jinja` with a country). The user turn is `## User Message:` followed by `## LLM Response:`, preceded by `## Country:` for country contexts. Single-turn records carry no category rules; multi-turn records append them to the system prompt. `dataset/judge/test.jsonl` holds the exact format behind the agreement numbers above — prompting the guard with the full Appendix E judge prompt instead is out of distribution.
 
 **KIDLlama** — a Llama-3.1-8B response model trained in two stages:
 
@@ -396,6 +402,25 @@ KIDBench contains safety-sensitive child-facing prompts, including self-harm, se
 KIDGuardLlama and KIDLlama are research artifacts. They must not replace parental, educational, medical, legal, or emergency support when a child may be at risk.
 
 **Scope.** The benchmark targets ages 7–11 and does not cover younger children or adolescents. The six scores come from a single primary LLM judge and are not directly calibrated against expert human scores; the human preference studies and psychology-informed reviews provide complementary rather than direct validation. Cultural judgments vary within countries as well as between them — the released cultural rules are one operationalization, not a cultural gold standard. Multi-turn conversations rely on an actor LLM rather than real child users.
+
+---
+
+## License
+
+| Component | Terms |
+|---|---|
+| Code (`src/`, `scripts/`) | [MIT](LICENSE) |
+| KIDLlama and KIDGuardLlama checkpoints | The Meta Llama Community License of their base model ([Llama 3](https://www.llama.com/llama3/license/) / [Llama 3.1](https://www.llama.com/llama3_1/license/)), which governs these LoRA fine-tunes |
+| KIDBench data, rubrics, and rules | Research-use and child-safety notice below |
+| `responses/`, `evaluations/`, `gold_responses/` | Contain outputs of third-party models, which remain subject to their providers' terms |
+
+**Use notice.** KIDBench, KIDLlama, and KIDGuardLlama are intended for research on child-facing AI safety evaluation and model development. Commercial use of the model checkpoints is permitted under the applicable Meta Llama licence and its Acceptable Use Policy, subject to the conditions below, which also apply to the data:
+
+- Do not deploy them directly to children as a child-facing assistant, toy, or companion.
+- Do not use them to generate harmful prompts or content targeting children.
+- Do not remove the child-safety context — rubrics, rules, and these notices — when redistributing.
+
+They are not a substitute for parental, educational, medical, legal, or emergency support.
 
 ---
 
