@@ -1,3 +1,13 @@
+## About this fork and attribution
+
+A reference fork of [MichiganNLP/KIDBench](https://github.com/MichiganNLP/kidbench), developed by **Samee Arif, Angana Borah, and Rada Mihalcea**. The benchmark, models, experiments, and linked paper are credited to the upstream project and its authors.
+
+See the [upstream repository](https://github.com/MichiganNLP/kidbench) for official releases and the [paper record](https://arxiv.org/abs/2605.25510) for bibliographic information. The original project README, scientific claims, and acknowledgments are preserved below.
+
+Code is provided under the [MIT license](LICENSE); data, rubrics, checkpoints, and third-party outputs have separate terms. Follow the upstream use notices for child-safety material. Before running the pipeline, review script behavior and credentials: some workflows use hosted APIs, load remote model code, or publish model checkpoints.
+
+---
+
 # KIDBench: Benchmarking Child Safety in Large Language Models
 
 Code, data, and results for **"The Age of Curiosity Meets the Age of AI: Benchmarking Child Safety in Large Language Models."**
